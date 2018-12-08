@@ -1,0 +1,5 @@
+{:paths ["src" "test" "resources"]
+ :aliases
+ {:repl {:main-opts  ["-m" "nrepl.cmdline"]
+         :extra-deps {nrepl {:mvn/version "0.5.1"}
+                      cljfmt {:mvn/version "0.6.2"}}}}}
