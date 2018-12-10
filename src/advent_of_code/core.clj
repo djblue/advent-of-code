@@ -88,5 +88,54 @@
             "ighfbyijnoumxjlxevacpwqtr"]]]
     (is (= (common-letters in) out))))
 
+; --- Day 3: No Matter How You Slice It ---
+
+; https://adventofcode.com/2018/day/3
+
+(defn read-claim [claim]
+  (let [[id x y w h]
+        (->> claim
+             (re-find #"#(\d+) @ (\d+),(\d+): (\d+)x(\d+)")
+             rest
+             (map #(Integer/parseInt %)))]
+    {:id id :x x :y y :w w :h h}))
+
+(defn expand-claim [claim]
+  (let [{:keys [x y w h]} claim]
+    (assoc
+     claim :coordinates
+     (for [i (range w) j (range h)]
+       {:x (+ x i) :y (+ y j)}))))
+
+(defn count-intersect-claims [claims]
+  (->> claims
+       (mapcat :coordinates)
+       frequencies
+       (filter #(> (second %) 1))
+       count))
+
+; https://adventofcode.com/2018/day/3#part2
+
+(defn uniq-claims [claims]
+  (let [fabric (->> claims (mapcat :coordinates) frequencies)]
+    (filter
+     #(let [counts (->> % :coordinates (select-keys fabric) vals)]
+        (= (count counts) (reduce + counts)))
+     claims)))
+
+(deftest no-matter-how-you-slice-it
+  (let [d1 (->> ["#1 @ 1,3: 4x4" "#2 @ 3,1: 4x4" "#3 @ 5,5: 2x2"]
+                (map read-claim)
+                (map expand-claim))
+        d2 (->> (s/split (slurp (io/resource "2018-day-03-input.txt")) #"\n")
+                (map read-claim)
+                (map expand-claim))]
+    (doseq [[in out]
+            [[d1 4] [d2 109143]]]
+      (is (= (count-intersect-claims in) out)))
+    (doseq [[in out]
+            [[d1 3] [d2 506]]]
+      (is (= (->> in uniq-claims first :id) out)))))
+
 (comment
   (clojure.test/run-tests *ns*))
