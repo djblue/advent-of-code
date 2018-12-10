@@ -1,7 +1,7 @@
 (ns advent-of-code.core
   (:require [clojure.java.io :as io]
             [clojure.string :as s]
-            [clojure.test :refer [deftest is]]))
+            [clojure.test :refer [deftest is run-tests]]))
 
 ; --- Day 1: Chronal Calibration ---
 
@@ -137,5 +137,6 @@
             [[d1 3] [d2 506]]]
       (is (= (->> in uniq-claims first :id) out)))))
 
-(comment
-  (clojure.test/run-tests *ns*))
+(defn -main [] (run-tests 'advent-of-code.core))
+
+(comment (-main))
