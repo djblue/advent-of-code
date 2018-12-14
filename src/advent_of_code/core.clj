@@ -137,6 +137,87 @@
             [[d1 3] [d2 506]]]
       (is (= (->> in uniq-claims first :id) out)))))
 
-(defn -main [] (run-tests 'advent-of-code.core))
+; --- Day 4: Repose Record ---
 
-(comment (-main))
+; https://adventofcode.com/2018/day/4
+
+(defn read-event [event]
+  (case event
+    "wakes up" {:type :wake}
+    "falls asleep" {:type :sleep}
+    (let [[_ id] (re-find #"Guard #(\d+) begins shift" event)]
+      {:type :begin :id (Integer/parseInt id)})))
+
+(defn read-log [log]
+  (->>
+   (s/split log #"\n")
+   (map
+    (fn [entry]
+      (let [found (rest (re-find #"\[(\d+)-(\d+)-(\d+) (\d+):(\d+)\] (.*)" entry))
+            [year month day hour minute] (map #(Integer/parseInt %) (butlast found))
+            event (last found)]
+        (merge (read-event event)
+               {:year year :month month
+                :day day :hour hour :minute minute}))))
+   (sort-by (juxt :year :month :day :hour :minute))))
+
+(defn process-log-entry [state entry]
+  (case (:type entry)
+    (:begin :sleep)
+    (merge state entry)
+    :wake
+    (let [times (range (:minute state) (:minute entry))
+          asleep (into {} (map vector times (repeat 1)))]
+      (update-in state
+                 [:result (:id state)]
+                 #(merge-with + % asleep)))))
+
+(defn process-log [log]
+  (:result (reduce process-log-entry {:result {}} log)))
+
+(defn most-minutes-asleep [times]
+  (first (sort-by #(->> % second vals (reduce +)) > times)))
+
+(defn minute-most-likely-asleep [times]
+  (first (sort-by second > times)))
+
+(defn best-chance-of-sneaking-in [log]
+  (let [times (process-log (read-log log))
+        [id times] (most-minutes-asleep times)
+        [minute] (minute-most-likely-asleep times)]
+    (* id minute)))
+
+(defn most-frequently-asleep [log]
+  (let [times (process-log (read-log log))
+        [id times]
+        (first
+         (sort-by #(apply max (vals (second %))) > times))
+        [minute] (first (sort-by #(second %) > times))]
+    (* id minute)))
+
+(deftest repose-record
+  (doseq [[in part1 part2]
+          [[(s/join
+             "\n"
+             ["[1518-11-01 00:00] Guard #10 begins shift"
+              "[1518-11-01 00:05] falls asleep"
+              "[1518-11-01 00:25] wakes up"
+              "[1518-11-01 00:30] falls asleep"
+              "[1518-11-01 00:55] wakes up"
+              "[1518-11-01 23:58] Guard #99 begins shift"
+              "[1518-11-02 00:40] falls asleep"
+              "[1518-11-02 00:50] wakes up"
+              "[1518-11-03 00:05] Guard #10 begins shift"
+              "[1518-11-03 00:24] falls asleep"
+              "[1518-11-03 00:29] wakes up"
+              "[1518-11-04 00:02] Guard #99 begins shift"
+              "[1518-11-04 00:36] falls asleep"
+              "[1518-11-04 00:46] wakes up"
+              "[1518-11-05 00:03] Guard #99 begins shift"
+              "[1518-11-05 00:45] falls asleep"
+              "[1518-11-05 00:55] wakes up"]) 240 4455]
+           [(slurp (io/resource "2018-day-04-input.txt")) 146622 31848]]]
+    (is (= (best-chance-of-sneaking-in in) part1))
+    (is (= (most-frequently-asleep in) part2))))
+
+(defn -main [] (run-tests 'advent-of-code.core))
