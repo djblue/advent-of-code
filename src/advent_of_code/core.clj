@@ -220,4 +220,34 @@
     (is (= (best-chance-of-sneaking-in in) part1))
     (is (= (most-frequently-asleep in) part2))))
 
+; --- Day 5: Alchemical Reduction ---
+
+; https://adventofcode.com/2018/day/5
+
+(defn toggle-case [s]
+  (let [up (s/upper-case s)]
+    (if-not (= up s) up (s/lower-case s))))
+
+(defn reduce-polymer-1 [polymer]
+  (let [n (count polymer)]
+    (loop [i 1 output (transient [])]
+      (if (> i n)
+        (persistent! output)
+        (let [a (get polymer (dec i))
+              b (get polymer i)]
+          (cond
+            (= (toggle-case a) b) (recur (+ i 2) output)
+            :else (recur (inc i) (conj! output a))))))))
+
+(defn reduce-polymer [polymer]
+  (->> polymer
+       (iterate reduce-polymer-1)
+       (reduce #(if (= %1 %2) (reduced %1) %2))))
+
+(deftest alchemical-reduction
+  (doseq [[in out]
+          [["dabAcCaCBAcCcaDA" 10]
+           [(s/trim (slurp (io/resource "2018-day-05-input.txt"))) 11264]]]
+    (is (= (count (reduce-polymer (s/split in #""))) out))))
+
 (defn -main [] (run-tests 'advent-of-code.core))
