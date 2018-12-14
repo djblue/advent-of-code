@@ -228,21 +228,15 @@
   (let [up (s/upper-case s)]
     (if-not (= up s) up (s/lower-case s))))
 
-(defn reduce-polymer-1 [polymer]
-  (let [n (count polymer)]
-    (loop [i 1 output (transient [])]
-      (if (> i n)
-        (persistent! output)
-        (let [a (get polymer (dec i))
-              b (get polymer i)]
-          (cond
-            (= (toggle-case a) b) (recur (+ i 2) output)
-            :else (recur (inc i) (conj! output a))))))))
-
 (defn reduce-polymer [polymer]
-  (->> polymer
-       (iterate reduce-polymer-1)
-       (reduce #(if (= %1 %2) (reduced %1) %2))))
+  (reduce
+   (fn [polymer b]
+     (if (or (empty? polymer)
+             (not= (toggle-case (peek polymer)) b))
+       (conj polymer b)
+       (pop polymer)))
+   []
+   polymer))
 
 (deftest alchemical-reduction
   (doseq [[in out]
