@@ -234,14 +234,22 @@
      (if (or (empty? polymer)
              (not= (toggle-case (peek polymer)) b))
        (conj polymer b)
-       (pop polymer)))
-   []
-   polymer))
+       (pop polymer))) [] polymer))
+
+(defn shortest-polymer [polymer]
+  (->> (map s/lower-case polymer)
+       distinct
+       (map (fn [unit]
+              (remove #(= (s/lower-case %) unit) polymer)))
+       (map reduce-polymer)
+       (sort-by count)
+       first))
 
 (deftest alchemical-reduction
-  (doseq [[in out]
-          [["dabAcCaCBAcCcaDA" 10]
-           [(s/trim (slurp (io/resource "2018-day-05-input.txt"))) 11264]]]
-    (is (= (count (reduce-polymer (s/split in #""))) out))))
+  (doseq [[in part1 part2]
+          [["dabAcCaCBAcCcaDA" 10 4]
+           [(s/trim (slurp (io/resource "2018-day-05-input.txt"))) 11264 4552]]]
+    (is (= (count (reduce-polymer (s/split in #""))) part1))
+    (is (= (count (shortest-polymer (s/split in #""))) part2))))
 
 (defn -main [] (run-tests 'advent-of-code.core))
