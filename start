@@ -2,5 +2,5 @@
 
 trap 'kill $(jobs -p)' EXIT
 clojure -A:prepl:reload &
-nvim src/advent_of_code/core.clj
+nvim src/advent_of_code
 
