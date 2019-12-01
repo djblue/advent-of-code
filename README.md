@@ -8,4 +8,4 @@
     
 ## test
 
-    clojure -Atest
+    clojure -A:test
