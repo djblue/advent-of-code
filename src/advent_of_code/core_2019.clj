@@ -8,15 +8,15 @@
 
 ; https://adventofcode.com/2019/day/1
 
-; Day 1: The Tyranny of the Rocket Equation
+; --- Day 1: The Tyranny of the Rocket Equation ---
 
 (defn fuel-required [mass]
   (- (int (Math/floor (/ mass 3))) 2))
 
-(defn total-fuel-requirements []
+(defn total-requirements [f]
   (let [input (get-input "2019-day-01-input.txt")
         modules (read-string (str "[" input "]"))]
-    (reduce + (map fuel-required modules))))
+    (reduce + (map f modules))))
 
 (deftest rocket-equation
   (are [mass fuel]
@@ -25,5 +25,20 @@
     14 2
     1969 654
     100756 33583)
-  (is (total-fuel-requirements) 3252897))
+  (is (total-requirements fuel-required) 3252897))
+
+; https://adventofcode.com/2019/day/1#part2
+
+; --- Part Two ---
+
+(defn fuel-requirements+fuel [mass]
+  (reduce + (take-while pos? (drop 1 (iterate fuel-required mass)))))
+
+(deftest rocket-equation+fuel
+  (are [mass fuel]
+       (= (fuel-requirements+fuel mass) fuel)
+    14 2
+    1969 966
+    100756 50346)
+  (is (total-requirements fuel-requirements+fuel) 4876469))
 
