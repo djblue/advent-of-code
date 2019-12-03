@@ -1,6 +1,7 @@
 (ns advent-of-code.core-2019
   (:require [clojure.java.io :as io]
             [clojure.string :as s]
+            [clojure.set :refer [intersection]]
             [clojure.test :refer [deftest is are]]))
 
 (defn get-input [file]
@@ -86,4 +87,84 @@
   (is
    (= (find-inputs (file->vec "2019-day-02-input.txt") 19690720)
       [65 33])))
+
+; https://adventofcode.com/2019/day/3
+
+(defn interop [point op]
+  (let [[x y] point
+        [direction n] op]
+    (case direction
+      \R [(range x (+ x n 1) +1) (repeat y)]
+      \L [(range x (- x n 1) -1) (repeat y)]
+      \U [(repeat x) (range y (+ y n 1) +1)]
+      \D [(repeat x) (range y (- y n 1) -1)])))
+
+(defn line-points [line]
+  (loop [point [0 0]
+         step 0
+         [op & line] line
+         points {}]
+    (if (nil? op)
+      points
+      (let [[_ n] op
+            ks (apply map vector (interop point op))]
+        (recur (last ks)
+               (+ step n)
+               line
+               (merge-with (fn [a b] a)
+                           points
+                           (zipmap ks
+                                   (range step (+ step n 1)))))))))
+
+(defn parse-lines [s]
+  (map #(let [[direction & n] %]
+          [direction (read-string (apply str n))]) s))
+
+(defn find-intersection [a b]
+  (let [m1 (-> a parse-lines line-points (dissoc [0 0]))
+        m2 (-> b parse-lines line-points (dissoc [0 0]))
+        s1 (-> m1 keys set) s2 (-> m2 keys set)]
+    [m1 m2 (intersection s1 s2)]))
+
+(defn find-min-manhattan [a b]
+  (let [[m1 m2 points] (find-intersection a b)]
+    (->> points
+         (filter (fn [[x y]] (and (> x 0) (> y 0))))
+         (map (fn [[x y]] (+ x y)))
+         (apply min))))
+
+(defn find-min-step [a b]
+  (let [[m1 m2 points] (find-intersection a b)]
+    (->> points
+         (map (fn [point]
+                (let [p1 (get m1 point)
+                      p2 (get m2 point)]
+                  (+ p1 p2))))
+         (apply min))))
+
+(deftest crossed-wires
+  (are [paths min-manhattan min-step]
+       (let [[p1 p2] paths]
+         (is (= (find-min-manhattan p1 p2) min-manhattan))
+         (is (= (find-min-step p1 p2) min-step)))
+
+    [["R8" "U5" "L5" "D3"]
+     ["U7" "R6" "D4" "L4"]]
+    6
+    30
+
+    [["R75" "D30" "R83" "U83" "L12" "D49" "R71" "U7" "L72"]
+     ["U62" "R66" "U55" "R34" "D71" "R55" "D58" "R83"]]
+    159
+    610
+
+    [["R98" "U47" "R26" "D63" "R33" "U87" "L62" "D20" "R33" "U53" "R51"]
+     ["U98" "R91" "D20" "R16" "D67" "R40" "U7" "R15" "U6" "R7"]]
+    135
+    410
+
+    (let [file (slurp (io/resource "2019-day-03-input.txt"))]
+      (->> (s/split file #"\n") (map #(s/split % #","))))
+    1674
+    14012))
 
