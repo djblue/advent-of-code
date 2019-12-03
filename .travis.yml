@@ -10,3 +10,6 @@ install:
   - sudo ./linux-install-1.10.1.492.sh
 script:
   - clojure -A:test
+branches:
+  only:
+  - master
