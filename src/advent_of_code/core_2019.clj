@@ -168,3 +168,37 @@
     1674
     14012))
 
+; https://adventofcode.com/2019/day/4
+
+; --- Day 4: Secure Container ---
+
+(defn digits [x]
+  (if (< x 10)
+    [x]
+    (conj (digits (quot x 10)) (rem x 10))))
+
+(defn at-least-two-adjacent? [n]
+  (some (fn [[a b]] (= a b)) (partition 2 1 n)))
+
+(defn exactly-two-adjacent? [n]
+  (some #(= % 2) (vals (frequencies n))))
+
+(defn never-decrease-digits? [n]
+  (= (sort n) n))
+
+(defn different-passwords [f a b]
+  (->> (range a b)
+       (map digits)
+       (filter never-decrease-digits?)
+       (filter f)
+       count))
+
+(deftest secure-container
+  (is (at-least-two-adjacent? (digits 122345)))
+  (is (never-decrease-digits? (digits 111123)))
+  (is (exactly-two-adjacent? (digits 112233)))
+  (is (not (exactly-two-adjacent? (digits 123444))))
+  (is (exactly-two-adjacent? (digits 111122)))
+  (is (= (different-passwords at-least-two-adjacent? 138241 674034) 1890))
+  (is (= (different-passwords exactly-two-adjacent? 138241 674034) 1277)))
+
