@@ -334,3 +334,38 @@
     9 1001
     10 1001))
 
+
+; --- Day 6: Universal Orbit Map ---
+
+(defn read-orbits []
+  (->> (s/split (get-input "2019-day-06-input.txt") #"\n")
+       (map #(s/split % #"\W"))
+       (reduce (fn [m [v k]] (assoc m k v)) {})))
+
+(defn object-orbits [object orbits]
+  (loop [path [] object object]
+    (if-let [orbiting (orbits object)]
+      (recur (conj path orbiting) orbiting)
+      path)))
+
+(defn total-orbits []
+  (let [orbits (read-orbits)]
+    (->>  orbits
+          (map #(object-orbits (first %) orbits))
+          (map count)
+          (reduce +))))
+
+(defn orbits-between [a b]
+  (let [p1 (object-orbits a (read-orbits))
+        p2 (object-orbits b (read-orbits))
+        common (some (set p1) p2)
+        p1 (take-while #(not= common %) p1)
+        p2 (take-while #(not= common %) p2)]
+    (+ (count p1) (count p2))))
+
+(deftest universal-orbit-map
+  (is (= (total-orbits) 150150))
+  (is (= (orbits-between "YOU" "SAN")
+         (orbits-between "SAN" "YOU")
+         352)))
+
