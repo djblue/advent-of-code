@@ -49,16 +49,15 @@
 
 ; --- Day 2: 1202 Program Alarm ---
 
-(defn intcode-vm
-  ([opcodes] (intcode-vm opcodes opcodes))
-  ([opcodes memory]
-   (let [[op i j to & opcodes] opcodes]
-     (if (= op 99)
-       memory
-       (let [a (get memory i)
-             b (get memory j)
-             f (case op 1 + 2 *)]
-         (recur opcodes (assoc memory to (f a b))))))))
+(defn intcode-vm [memory]
+  (loop [[op i j to & opcodes] memory
+         memory memory]
+    (if (= op 99)
+      memory
+      (let [a (get memory i)
+            b (get memory j)
+            f ({1 + 2 *} op)]
+        (recur opcodes (assoc memory to (f a b)))))))
 
 (defn run-program [opcodes a b]
   (-> opcodes (assoc 1 a) (assoc 2 b) intcode-vm first))
