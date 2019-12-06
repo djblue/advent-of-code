@@ -201,3 +201,136 @@
   (is (= (different-passwords at-least-two-adjacent? 138241 674034) 1890))
   (is (= (different-passwords exactly-two-adjacent? 138241 674034) 1277)))
 
+; --- Day 5: Sunny with a Chance of Asteroids ---
+
+(defn parse-opcode [op]
+  (let [[a b c d e]
+        (->> op
+             digits
+             (concat (repeat 5 0))
+             (take-last 5))]
+    [(+ (* 10 d) e) c b a]))
+
+(defn memory-read [addr mode memory]
+  (if (= mode 1)
+    addr
+    (get memory addr)))
+
+(def op->fn {1 + 2 *
+             5 not= 6 =
+             7 #(if (< %1 %2) 1 0)
+             8 #(if (= %1 %2) 1 0)})
+
+(defn intcode-vm-new [state]
+  (let [{:keys [pc in out memory] :or {pc 0}} state
+        [op & args] (subvec memory pc)
+        [op & modes] (parse-opcode op)
+        f (op->fn op)
+        pc (inc pc)]
+    (if (= op 99) ; halt
+      state
+      (recur
+       (merge
+        state
+        (case op
+          ; arithmetic / less than / equals
+          (1 2 7 8)
+          (let [[a b c] args
+                [m1 m2] modes
+                a (memory-read a m1 memory)
+                b (memory-read b m2 memory)
+                memory (assoc memory c (f a b))]
+            {:memory memory :pc (+ pc 3)})
+
+          ; read input
+          3 (let [[value & in] in
+                  [addr] args
+                  memory (assoc memory addr value)]
+              {:in in :memory memory :pc (inc pc)})
+
+          ; write output
+          4 (let [[value] args
+                  [mode] modes
+                  value (memory-read value mode memory)
+                  out (conj out value)]
+              {:out out :memory memory :pc (inc pc)})
+
+          ; jump-if-true / jump-if-false
+          (5 6)
+          (let [[value dest] args
+                [m1 m2] modes
+                value (memory-read value m1 memory)
+                dest (memory-read dest m2 memory)]
+            {:pc (if (f value 0) dest (+ pc 2))})))))))
+
+(defn run-program-new [program in]
+  (-> {:memory program :in [in]} intcode-vm-new :out first))
+
+(deftest sunny-with-a-chance-of-asteroids
+  ; read stdin
+  (is (-> {:memory [3 0 99] :in [:hello]}
+          intcode-vm-new
+          :memory
+          first
+          (= :hello)))
+
+  ; write stdout
+  (is (-> {:memory [4 0 99]}
+          intcode-vm-new
+          :out
+          first
+          (= 4)))
+
+  ; in -> out
+  (is (-> {:memory [3 0 4 0 99] :in [:hello]}
+          intcode-vm-new
+          :out
+          first
+          (= :hello)))
+
+  (is (-> {:memory [1002 4 3 4 33]}
+          intcode-vm-new
+          :memory
+          last
+          (= 99)))
+
+  (are [in out]
+       (is (= (run-program-new (file->vec "2019-day-05-input.txt") in) out))
+    1 16574641
+    5 15163975)
+
+  (are [in out]
+       (is (= out
+              (run-program-new [3 3 1108 -1 8 3 4 3 99] in)
+              (run-program-new [3 9 8 9 10 9 4 9 99 -1 8] in)))
+    7 0
+    8 1
+    9 0)
+
+  (are [in out]
+       (is (= out
+              (run-program-new [3 3 1107 -1 8 3 4 3 99] in)
+              (run-program-new [3 9 7 9 10 9 4 9 99 -1 8] in)))
+    7 1
+    8 0
+    9 0)
+
+  (are [in out]
+       (is (= out
+              (run-program-new [3 12 6 12 15 1 13 14 13 4 13 99 -1 0 1 9] in)
+              (run-program-new [3 3 1105 -1 9 1101 0 0 12 4 12 99 1] in)))
+    -1 1
+    0 0
+    1 1)
+
+  (are [in out]
+       (is (= out
+              (run-program-new [3 21 1008 21 8 20 1005 20 22 107 8 21 20 1006 20 31
+                                1106 0 36 98 0 0 1002 21 125 20 4 20 1105 1 46 104
+                                999 1105 1 46 1101 1000 1 20 4 20 1105 1 46 98 99] in)))
+    6 999
+    7 999
+    8 1000
+    9 1001
+    10 1001))
+
