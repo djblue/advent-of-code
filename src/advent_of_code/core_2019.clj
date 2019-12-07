@@ -1,7 +1,7 @@
 (ns advent-of-code.core-2019
   (:require [clojure.java.io :as io]
             [clojure.string :as s]
-            [clojure.set :refer [intersection]]
+            [clojure.set :refer [intersection difference]]
             [clojure.test :refer [deftest is are]]))
 
 (defn get-input [file]
@@ -337,6 +337,7 @@
 
 ; --- Day 6: Universal Orbit Map ---
 
+
 (defn read-orbits []
   (->> (s/split (get-input "2019-day-06-input.txt") #"\n")
        (map #(s/split % #"\W"))
@@ -368,4 +369,49 @@
   (is (= (orbits-between "YOU" "SAN")
          (orbits-between "SAN" "YOU")
          352)))
+
+; --- Day 7: Amplification Circuit ---
+
+(defn try-phase-settings [program settings]
+  (loop [[phase & settings] settings input 0]
+    (if-not phase
+      input
+      (recur
+       settings
+       (run-program-new program [phase input])))))
+
+(defn all-settings [choices]
+  (for [a (difference choices #{})
+        b (difference choices #{a})
+        c (difference choices #{a b})
+        d (difference choices #{a b c})
+        e (difference choices #{a b c d})]
+    [a b c d e]))
+
+(defn find-max-thrust [program]
+  (->> (all-settings #{0 1 2 3 4})
+       (map #(try-phase-settings program %))
+       (apply max)))
+
+(deftest amplification-circuit
+  (are [program settings max]
+       (= (try-phase-settings program settings)
+          (find-max-thrust program)
+          max)
+    [3 15 3 16 1002 16 10 16 1 16 15 15 4 15 99 0 0]
+    [4 3 2 1 0]
+    43210
+
+    [3 23 3 24 1002 24 10 24 1002 23 -1 23
+     101 5 23 23 1 24 23 23 4 23 99 0 0]
+    [0 1 2 3 4]
+    54321
+
+    [3 31 3 32 1002 32 10 32 1001 31 -2 31 1007 31 0 33
+     1002 33 7 33 1 33 31 31 1 32 31 31 4 31 99 0 0 0]
+    [1 0 4 3 2]
+    65210)
+
+  (is (= (find-max-thrust (file->vec "2019-day-07-input.txt"))
+         43812)))
 
