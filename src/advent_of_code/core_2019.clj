@@ -2,7 +2,8 @@
   (:require [clojure.java.io :as io]
             [clojure.string :as s]
             [clojure.set :refer [intersection difference]]
-            [clojure.test :refer [deftest is are]]))
+            [clojure.test :refer [deftest is are]]
+            [clojure.core.async :as a :refer [>! <! <!!]]))
 
 (defn get-input [file]
   (->> file io/resource slurp))
@@ -221,47 +222,53 @@
              7 #(if (< %1 %2) 1 0)
              8 #(if (= %1 %2) 1 0)})
 
+(defn intcode-vm-new-async [state in out]
+  (a/go-loop [state state]
+    (let [{:keys [pc memory] :or {pc 0}} state
+          [op & args] (subvec memory pc)
+          [op & modes] (parse-opcode op)
+          f (op->fn op)
+          pc (inc pc)]
+      (if (= op 99) ; halt
+        (do (a/close! out) state)
+        (recur
+         (merge
+          state
+          (case op
+            ; arithmetic / less than / equals
+            (1 2 7 8)
+            (let [[a b c] args
+                  [m1 m2] modes
+                  a (memory-read a m1 memory)
+                  b (memory-read b m2 memory)
+                  memory (assoc memory c (f a b))]
+              {:memory memory :pc (+ pc 3)})
+
+            ; read input
+            3 (let [value (<! in)
+                    [addr] args
+                    memory (assoc memory addr value)]
+                {:memory memory :pc (inc pc)})
+
+            ; write output
+            4 (let [[value] args
+                    [mode] modes
+                    value (memory-read value mode memory)]
+                (>! out value)
+                {:memory memory :pc (inc pc)})
+
+            ; jump-if-true / jump-if-false
+            (5 6)
+            (let [[value dest] args
+                  [m1 m2] modes
+                  value (memory-read value m1 memory)
+                  dest (memory-read dest m2 memory)]
+              {:pc (if (f value 0) dest (+ pc 2))}))))))))
+
 (defn intcode-vm-new [state]
-  (let [{:keys [pc in out memory] :or {pc 0}} state
-        [op & args] (subvec memory pc)
-        [op & modes] (parse-opcode op)
-        f (op->fn op)
-        pc (inc pc)]
-    (if (= op 99) ; halt
-      state
-      (recur
-       (merge
-        state
-        (case op
-          ; arithmetic / less than / equals
-          (1 2 7 8)
-          (let [[a b c] args
-                [m1 m2] modes
-                a (memory-read a m1 memory)
-                b (memory-read b m2 memory)
-                memory (assoc memory c (f a b))]
-            {:memory memory :pc (+ pc 3)})
-
-          ; read input
-          3 (let [[value & in] in
-                  [addr] args
-                  memory (assoc memory addr value)]
-              {:in in :memory memory :pc (inc pc)})
-
-          ; write output
-          4 (let [[value] args
-                  [mode] modes
-                  value (memory-read value mode memory)
-                  out (conj out value)]
-              {:out out :memory memory :pc (inc pc)})
-
-          ; jump-if-true / jump-if-false
-          (5 6)
-          (let [[value dest] args
-                [m1 m2] modes
-                value (memory-read value m1 memory)
-                dest (memory-read dest m2 memory)]
-            {:pc (if (f value 0) dest (+ pc 2))})))))))
+  (let [in (a/to-chan (:in state)) out (a/chan (a/sliding-buffer 100))
+        state (<!! (intcode-vm-new-async state in out))]
+    (assoc state :out (or (<!! (a/into '() out)) []))))
 
 (defn run-program-new [program in]
   (-> {:memory program :in in} intcode-vm-new :out first))
