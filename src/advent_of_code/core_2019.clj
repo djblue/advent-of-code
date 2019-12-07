@@ -264,7 +264,7 @@
             {:pc (if (f value 0) dest (+ pc 2))})))))))
 
 (defn run-program-new [program in]
-  (-> {:memory program :in [in]} intcode-vm-new :out first))
+  (-> {:memory program :in in} intcode-vm-new :out first))
 
 (deftest sunny-with-a-chance-of-asteroids
   ; read stdin
@@ -295,30 +295,30 @@
           (= 99)))
 
   (are [in out]
-       (is (= (run-program-new (file->vec "2019-day-05-input.txt") in) out))
+       (is (= (run-program-new (file->vec "2019-day-05-input.txt") [in]) out))
     1 16574641
     5 15163975)
 
   (are [in out]
        (is (= out
-              (run-program-new [3 3 1108 -1 8 3 4 3 99] in)
-              (run-program-new [3 9 8 9 10 9 4 9 99 -1 8] in)))
+              (run-program-new [3 3 1108 -1 8 3 4 3 99] [in])
+              (run-program-new [3 9 8 9 10 9 4 9 99 -1 8] [in])))
     7 0
     8 1
     9 0)
 
   (are [in out]
        (is (= out
-              (run-program-new [3 3 1107 -1 8 3 4 3 99] in)
-              (run-program-new [3 9 7 9 10 9 4 9 99 -1 8] in)))
+              (run-program-new [3 3 1107 -1 8 3 4 3 99] [in])
+              (run-program-new [3 9 7 9 10 9 4 9 99 -1 8] [in])))
     7 1
     8 0
     9 0)
 
   (are [in out]
        (is (= out
-              (run-program-new [3 12 6 12 15 1 13 14 13 4 13 99 -1 0 1 9] in)
-              (run-program-new [3 3 1105 -1 9 1101 0 0 12 4 12 99 1] in)))
+              (run-program-new [3 12 6 12 15 1 13 14 13 4 13 99 -1 0 1 9] [in])
+              (run-program-new [3 3 1105 -1 9 1101 0 0 12 4 12 99 1] [in])))
     -1 1
     0 0
     1 1)
@@ -327,7 +327,7 @@
        (is (= out
               (run-program-new [3 21 1008 21 8 20 1005 20 22 107 8 21 20 1006 20 31
                                 1106 0 36 98 0 0 1002 21 125 20 4 20 1105 1 46 104
-                                999 1105 1 46 1101 1000 1 20 4 20 1105 1 46 98 99] in)))
+                                999 1105 1 46 1101 1000 1 20 4 20 1105 1 46 98 99] [in])))
     6 999
     7 999
     8 1000
