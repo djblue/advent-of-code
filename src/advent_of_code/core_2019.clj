@@ -422,3 +422,46 @@
   (is (= (find-max-thrust (file->vec "2019-day-07-input.txt"))
          43812)))
 
+(defn run-program-async [program setting]
+  (let [in (a/chan) out (a/chan)
+        state (intcode-vm-new-async {:memory program} in out)]
+    (a/put! in setting)
+    {:in in :out out :state state}))
+
+(defn try-phase-settings-with-feedback [program settings]
+  (let [[a b c d e] settings
+        a (run-program-async program a)
+        b (run-program-async program b)
+        c (run-program-async program c)
+        d (run-program-async program d)
+        e (run-program-async program e)]
+    (doseq [[from to] (partition 2 1 [a b c d e a])]
+      (a/pipe (:out from) (:in to)))
+    (a/put! (:in a) 0)
+    (a/alts!! [(:state e) (a/timeout 5000)])
+    (a/poll! (:in a))))
+
+(defn find-max-thrust-with-feedback [program]
+  (->> (all-settings #{5 6 7 8 9})
+       (map #(try-phase-settings-with-feedback program %))
+       (apply max)))
+
+(deftest amplification-circuit-with-feedback
+  (are [program settings max]
+       (= (try-phase-settings-with-feedback program settings) max)
+
+    [3 26 1001 26 -4 26 3 27 1002 27 2 27 1 27 26
+     27 4 27 1001 28 -1 28 1005 28 6 99 0 0 5]
+    [9 8 7 6 5]
+    139629729
+
+    [3 52 1001 52 -5 52 3 53 1 52 56 54 1007 54 5 55 1005 55 26 1001 54
+     -5 54 1105 1 12 1 53 54 53 1008 54 0 55 1001 55 1 55 2 53 55 53 4
+     53 1001 56 -1 56 1005 56 6 99 0 0 0 0 10]
+    [9 7 8 5 6]
+    18216)
+
+  (is (= (find-max-thrust-with-feedback
+          (file->vec "2019-day-07-input.txt"))
+         59597414)))
+
