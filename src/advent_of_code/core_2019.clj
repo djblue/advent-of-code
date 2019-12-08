@@ -16,8 +16,7 @@
 
 ; --- Day 1: The Tyranny of the Rocket Equation ---
 
-(defn fuel-required [mass]
-  (- (int (Math/floor (/ mass 3))) 2))
+(defn fuel-required [mass] (- (quot mass 3) 2))
 
 (defn total-requirements [f]
   (let [modules (file->vec "2019-day-01-input.txt")]
@@ -37,7 +36,7 @@
 ; --- Part Two ---
 
 (defn fuel-requirements+fuel [mass]
-  (reduce + (take-while pos? (drop 1 (iterate fuel-required mass)))))
+  (reduce + (take-while pos? (rest (iterate fuel-required mass)))))
 
 (deftest rocket-equation+fuel
   (are [mass fuel]
