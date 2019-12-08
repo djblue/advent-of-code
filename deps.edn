@@ -1,6 +1,7 @@
 {:paths ["src" "resources"]
  :deps
- {org.clojure/core.async {:mvn/version "0.6.532"}}
+ {org.clojure/core.async {:mvn/version "0.6.532"}
+  org.clojure/math.combinatorics {:mvn/version "0.1.6"}}
  :aliases
  {:test {:main-opts ["-m" "advent-of-code.core"]}
   :prepl

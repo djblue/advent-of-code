@@ -3,7 +3,8 @@
             [clojure.string :as s]
             [clojure.set :refer [intersection difference]]
             [clojure.test :refer [deftest is are]]
-            [clojure.core.async :as a :refer [>! <! <!!]]))
+            [clojure.core.async :as a :refer [>! <! <!!]]
+            [clojure.math.combinatorics :as combo]))
 
 (defn get-input [file]
   (->> file io/resource slurp))
@@ -387,16 +388,8 @@
        settings
        (run-program-new program [phase input])))))
 
-(defn all-settings [choices]
-  (for [a (difference choices #{})
-        b (difference choices #{a})
-        c (difference choices #{a b})
-        d (difference choices #{a b c})
-        e (difference choices #{a b c d})]
-    [a b c d e]))
-
 (defn find-max-thrust [program]
-  (->> (all-settings #{0 1 2 3 4})
+  (->> (combo/permutations [0 1 2 3 4])
        (map #(try-phase-settings program %))
        (apply max)))
 
@@ -442,7 +435,7 @@
     (a/poll! (:in a))))
 
 (defn find-max-thrust-with-feedback [program]
-  (->> (all-settings #{5 6 7 8 9})
+  (->> (combo/permutations [5 6 7 8 9])
        (map #(try-phase-settings-with-feedback program %))
        (apply max)))
 
