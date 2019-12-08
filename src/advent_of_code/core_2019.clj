@@ -465,3 +465,24 @@
           (file->vec "2019-day-07-input.txt"))
          59597414)))
 
+; --- Day 8: Space Image Format ---
+
+(defn get-layers [file]
+  (->> (get-input file)
+       s/trim
+       (map str)
+       (map read-string)
+       (partition (* 25 6))))
+
+(defn get-min-layer [layers]
+  (->> layers
+       (map frequencies)
+       (sort-by #(get % 0))
+       first))
+
+(deftest space-image-format
+  (is (=
+       (let [layer (get-min-layer (get-layers "2019-day-08-input.txt"))]
+         (* (get layer 1) (get layer 2)))
+       1452)))
+
