@@ -467,12 +467,12 @@
 
 ; --- Day 8: Space Image Format ---
 
-(defn get-layers [file]
+(defn get-layers [file width height]
   (->> (get-input file)
        s/trim
        (map str)
        (map read-string)
-       (partition (* 25 6))))
+       (partition (* width height))))
 
 (defn get-min-layer [layers]
   (->> layers
@@ -480,9 +480,37 @@
        (sort-by #(get % 0))
        first))
 
+(defn apply-transparency [layers]
+  (->> layers
+       (reduce
+        (fn [image layer]
+          (merge
+           (->> layer
+                (map-indexed #(-> [%1 %2]))
+                (filter #(not= (second %) 2))
+                (into {}))
+           image))
+        {})
+       (sort-by first)
+       (map second)))
+
+(defn layer->str [layer width]
+  (->> layer
+       (map #(if (= 0 %) " " "█"))
+       (partition width)
+       (map #(s/join "" %))
+       (s/join "\n")))
+
+(comment
+  (-> (get-layers "2019-day-08-input.txt" 25 6)
+      apply-transparency
+      (layer->str 25)
+      println))
+
 (deftest space-image-format
   (is (=
-       (let [layer (get-min-layer (get-layers "2019-day-08-input.txt"))]
+       (let [layers (get-layers "2019-day-08-input.txt" 25 6)
+             layer (get-min-layer layers)]
          (* (get layer 1) (get layer 2)))
        1452)))
 
