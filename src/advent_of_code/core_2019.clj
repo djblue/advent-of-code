@@ -212,20 +212,33 @@
              (take-last 5))]
     [(+ (* 10 d) e) c b a]))
 
-(defn memory-read [addr mode memory]
-  (if (= mode 1)
-    addr
-    (get memory addr)))
+(defn resolve-addr [addr mode state]
+  (case mode
+    2 (+ (get state :relative-base 0) addr)
+    addr))
 
-(def op->fn {1 + 2 *
+(defn memory-read [addr mode state]
+  (case mode
+    1 addr
+    (get-in state [:memory (resolve-addr addr mode state)] 0)))
+
+(def op->fn {1 +' 2 *'
              5 not= 6 =
              7 #(if (< %1 %2) 1 0)
              8 #(if (= %1 %2) 1 0)})
 
+(defn vec->map [v]
+  (into {} (map-indexed #(-> [%1 %2]) v)))
+
 (defn intcode-vm-new-async [state in out]
-  (a/go-loop [state state]
-    (let [{:keys [pc memory] :or {pc 0}} state
-          [op & args] (subvec memory pc)
+  (a/go-loop [state (update state :memory vec->map)]
+    (let [{:keys [pc memory relative-base]
+           :or {pc 0 relative-base 0}}
+          state
+          [op & args] [(get memory pc)
+                       (get memory (+ 1 pc) 0)
+                       (get memory (+ 2 pc) 0)
+                       (get memory (+ 3 pc) 0)]
           [op & modes] (parse-opcode op)
           f (op->fn op)
           pc (inc pc)]
@@ -238,37 +251,51 @@
             ; arithmetic / less than / equals
             (1 2 7 8)
             (let [[a b c] args
-                  [m1 m2] modes
-                  a (memory-read a m1 memory)
-                  b (memory-read b m2 memory)
+                  [m1 m2 m3] modes
+                  a (memory-read a m1 state)
+                  b (memory-read b m2 state)
+                  c (resolve-addr c m3 state)
                   memory (assoc memory c (f a b))]
               {:memory memory :pc (+ pc 3)})
 
             ; read input
-            3 (let [value (<! in)
-                    [addr] args
-                    memory (assoc memory addr value)]
-                {:memory memory :pc (inc pc)})
+            3
+            (let [value (<! in)
+                  [addr] args
+                  addr (resolve-addr addr (first modes) state)
+                  memory (assoc memory addr value)]
+              {:memory memory :pc (inc pc)})
 
             ; write output
-            4 (let [[value] args
-                    [mode] modes
-                    value (memory-read value mode memory)]
-                (>! out value)
-                {:memory memory :pc (inc pc)})
+            4
+            (let [[addr] args
+                  [mode] modes
+                  value (memory-read addr mode state)]
+              (>! out value)
+              {:memory memory :pc (inc pc)})
 
             ; jump-if-true / jump-if-false
             (5 6)
             (let [[value dest] args
                   [m1 m2] modes
-                  value (memory-read value m1 memory)
-                  dest (memory-read dest m2 memory)]
-              {:pc (if (f value 0) dest (+ pc 2))}))))))))
+                  value (memory-read value m1 state)
+                  dest (memory-read dest m2 state)]
+              {:pc (if (f value 0) dest (+ pc 2))})
+
+            ; adjusts the relative base
+            9
+            (let [[addr] args
+                  [mode] modes
+                  value (memory-read addr mode state)]
+              {:relative-base (+ relative-base value) :pc (inc pc)}))))))))
 
 (defn intcode-vm-new [state]
   (let [in (a/to-chan (:in state)) out (a/chan (a/sliding-buffer 100))
-        state (<!! (intcode-vm-new-async state in out))]
-    (assoc state :out (or (<!! (a/into '() out)) []))))
+        [state] (a/alts!! [(intcode-vm-new-async state in out)
+                           (a/timeout 5000)])]
+    (a/close! out)
+    (when state
+      (assoc state :out (or (<!! (a/into '() out)) [])))))
 
 (defn run-program-new [program in]
   (-> {:memory program :in in} intcode-vm-new :out first))
@@ -278,7 +305,7 @@
   (is (-> {:memory [3 0 99] :in [:hello]}
           intcode-vm-new
           :memory
-          first
+          (get 0)
           (= :hello)))
 
   ; write stdout
@@ -298,7 +325,7 @@
   (is (-> {:memory [1002 4 3 4 33]}
           intcode-vm-new
           :memory
-          last
+          (get 4)
           (= 99)))
 
   (are [in out]
@@ -505,4 +532,15 @@
              layer (get-min-layer layers)]
          (* (get layer 1) (get layer 2)))
        1452)))
+
+; --- Day 9: Sensor Boost ---
+
+(deftest sensor-boost
+  (are [program in out]
+       (= (run-program-new program in) out)
+    [109 1 204 -1 1001 100 1 100 1008 100 16 101 1006 101 0 99] [] 99
+    [1102 34915192 34915192 7 4 7 99 0] [] 1219070632396864
+    (file->vec "2019-day-09-input.txt") [1] 2775723069
+    (file->vec "2019-day-09-input.txt") [2] 49115
+    [104 1125899906842624 99] [] 1125899906842624))
 
