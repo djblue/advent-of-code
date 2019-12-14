@@ -544,3 +544,78 @@
     (file->vec "2019-day-09-input.txt") [2] 49115
     [104 1125899906842624 99] [] 1125899906842624))
 
+; --- Day 10: Monitoring Station ---
+
+(defn abs [n] (max n (- n)))
+
+(defn unit-vector [a b]
+  (let [[x1 y1] a [x2 y2] b
+        x (- x2 x1) y (- y2 y1)]
+    (cond
+      (= x y 0) [0 0]
+      (= x 0)   [0 (if (neg? y) -1 1)]
+      (= y 0)   [(if (neg? x) -1 1) 0]
+      :else     [(/ x (abs y)) (/ y (abs x))])))
+
+(deftest unit-vectors
+  (are [a b unit]
+       (= (unit-vector a b) unit)
+
+    ; same point
+    [0 0] [0 0] [0 0]
+
+    ; diagonals
+    [0 0] [1 1] [1 1]
+    [0 0] [2 2] [1 1]
+    [0 0] [3 3] [1 1]
+    [1 1] [2 2] [1 1]
+
+    [1 1] [0 0] [-1 -1]
+
+    ; single direction
+    [1 1] [1 2] [0 1]
+    [1 1] [1 4] [0 1]
+    [1 1] [1 8] [0 1]
+
+    ; single direction
+    [2 1] [1 1] [-1 0]
+    [4 1] [1 1] [-1 0]
+    [8 1] [1 1] [-1 0]
+
+    ; other direction
+    [0 0] [1 2] [1/2 2]
+    [0 0] [2 4] [1/2 2]
+    [1 1] [2 3] [1/2 2]
+    [1 1] [3 5] [1/2 2]))
+
+(defn parse-location-input [string]
+  (->>
+   (map-indexed
+    (fn [row row-string]
+      (map-indexed
+       (fn [col c]
+         (when (= c "#")
+           [row col]))
+       (s/split row-string #"")))
+    (s/split string #"\n"))
+   (apply concat)
+   (filter identity)
+   set))
+
+(defn best-location [locations]
+  (->>
+   (map
+    (fn [a]
+      (group-by
+       #(unit-vector a %)
+       (disj locations a)))
+    locations)
+   (map count)
+   (apply max)))
+
+(deftest best-locations
+  (is (= (->> (get-input "2019-day-10-input.txt")
+              parse-location-input
+              best-location)
+         334)))
+
