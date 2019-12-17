@@ -619,3 +619,40 @@
               best-location)
          334)))
 
+; --- Day 16: Flawed Frequency Transmission ---
+
+(defn base-pattern [n]
+  (->>
+   (concat
+    (repeat n 0) (repeat n 1) (repeat n 0) (repeat n -1))
+   cycle
+   rest))
+
+(defn FFT-1 [input]
+  (->>
+   (range (count input))
+   (map inc)
+   (map (fn [n]
+          (->>
+           (base-pattern n)
+           (map * input)
+           (reduce +)
+           abs)))
+   (map #(mod % 10))))
+
+(defn FFT [input n]
+  (nth (iterate FFT-1 input) n))
+
+(defn parse-fft-input [string]
+  (map read-string (s/split (s/trim string) #"")))
+
+(deftest flawed-frequency-transmission
+  (are [input n out]
+       (= (take 8 (FFT (parse-fft-input input) n))
+          (parse-fft-input out))
+    "12345678" 4 "01029498"
+    "80871224585914546619083218645595" 100 "24176176"
+    "19617804207202209144916044189917" 100 "73745418"
+    "69317163492948606335995924319873" 100 "52432133"
+    (get-input "2019-day-16-input.txt") 100 "42945143"))
+
