@@ -4,7 +4,8 @@
             [clojure.set :refer [intersection difference]]
             [clojure.test :refer [deftest is are]]
             [clojure.core.async :as a :refer [>! <! <!!]]
-            [clojure.math.combinatorics :as combo]))
+            [clojure.math.combinatorics :as combo]
+            [criterium.core :as c]))
 
 (defn get-input [file]
   (->> file io/resource slurp))
@@ -546,7 +547,7 @@
 
 ; --- Day 10: Monitoring Station ---
 
-(defn abs [n] (max n (- n)))
+(defn abs ^long [^long n] (max n (- n)))
 
 (defn unit-vector [a b]
   (let [[x1 y1] a [x2 y2] b
@@ -628,23 +629,58 @@
    cycle
    rest))
 
-(defn FFT-1 [input]
-  (->>
-   (range (count input))
-   (map inc)
-   (map (fn [n]
-          (->>
-           (base-pattern n)
-           (map * input)
-           (reduce +)
-           abs)))
-   (map #(mod % 10))))
+(comment
+  (time
+   (let [input (get-input "2019-day-16-input.txt")
+         input (parse-fft-input input)
+         n 100
+         out "42945143"]
+     (c/quick-bench (FFT input n) :verbose)
+     #_(= (take 8) (parse-fft-input out)))))
+
+(defn aget-long ^long [^longs a ^long i] (aget a i))
+(defn into-long-array [aseq] (into-array java.lang.Long/TYPE aseq))
+
+(defn long-array-map [f a]
+  (let [size (count a)
+        result (long-array size)]
+    (loop [i 0]
+      (if (= i size)
+        result
+        (do
+          (aset-long result i (f (get a i)))
+          (recur (unchecked-add i 1)))))))
+
+(defn FFT-1-row [pattern input]
+  (let [size (count input)]
+    (loop [n 0 acc 0]
+      (if (= n size)
+        (mod (Math/abs acc) 10)
+        (let [i (aget-long input n)
+              p (aget-long pattern n)]
+          (recur
+           (unchecked-add n 1)
+           (unchecked-add acc (unchecked-multiply p i))))))))
+
+(defn FFT-1 [patterns input]
+  (long-array-map #(FFT-1-row % input) patterns))
+
+(defn get-patterns [n]
+  (->> (map inc (range))
+       (map base-pattern)
+       (take n)
+       (map #(into-long-array (take n %)))
+       (into [])))
+
+(def get-patterns-memo (memoize get-patterns))
 
 (defn FFT [input n]
-  (nth (iterate FFT-1 input) n))
+  (let [patterns (get-patterns-memo (count input))
+        input (into-long-array input)]
+    (nth (iterate #(FFT-1 patterns %) input) n)))
 
 (defn parse-fft-input [string]
-  (map read-string (s/split (s/trim string) #"")))
+  (mapv read-string (s/split (s/trim string) #"")))
 
 (deftest flawed-frequency-transmission
   (are [input n out]
