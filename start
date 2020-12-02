@@ -1,6 +1,0 @@
-#!/bin/bash
-
-trap 'kill $(jobs -p)' EXIT
-clojure -A:prepl:reload &> out.log &
-nvim src/advent_of_code
-

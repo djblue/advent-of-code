@@ -2,11 +2,6 @@
  :deps
  {org.clojure/core.async {:mvn/version "0.6.532"}
   org.clojure/math.combinatorics {:mvn/version "0.1.6"}
-  criterium {:mvn/version "0.4.5"}}
+  criterium/criterium {:mvn/version "0.4.5"}}
  :aliases
- {:test {:main-opts ["-m" "advent-of-code.core"]}
-  :prepl
-  {:jvm-opts ["-Dclojure.server.repl={:port,40404,:accept,clojure.core.server/io-prepl}"]}
-  :reload
-  {:main-opts ["-m" "advent-of-code.reload"]
-   :extra-deps {ns-tracker {:mvn/version "0.4.0"}}}}}
+ {:test {:main-opts ["-m" "advent-of-code.core"]}}}
