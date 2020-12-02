@@ -31,7 +31,7 @@
 
 ; --- Day 2: Password Philosophy ---
 
-(defn valid-passwords [s]
+(defn valid-passwords-1 [s]
   (count
    (for [line (str/split-lines s)
          :let [[_ lowest highest [letter] password]
@@ -42,8 +42,21 @@
          :when (<= lowest (get password letter 0) highest)]
      letter)))
 
+(defn valid-passwords-2 [s]
+  (count
+   (for [line (str/split-lines s)
+         :let [[_ i j [letter] password]
+               (re-matches #"(\d+)-(\d+) (.): (.*)" line)
+               i (dec (Integer/parseInt i))
+               j (dec (Integer/parseInt j))]
+         :when (not= (= (get password i) letter)
+                     (= (get password j) letter))]
+     letter)))
+
 (def day-02-input (-> "2020-day-02-input.txt" io/resource slurp))
 
 (deftest valid-passwords-test
-  (is (= 519 (valid-passwords day-02-input)))
-  (is (= 2 (valid-passwords "1-3 a: abcde\n1-3 b: cdefg\n2-9 c: ccccccccc"))))
+  (is (= 2 (valid-passwords-1 "1-3 a: abcde\n1-3 b: cdefg\n2-9 c: ccccccccc")))
+  (is (= 519 (valid-passwords-1 day-02-input)))
+  (is (= 1 (valid-passwords-2 "1-3 a: abcde\n1-3 b: cdefg\n2-9 c: ccccccccc")))
+  (is (= 708 (valid-passwords-2 day-02-input))))
