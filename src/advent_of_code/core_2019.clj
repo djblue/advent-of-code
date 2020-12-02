@@ -1,7 +1,7 @@
 (ns advent-of-code.core-2019
   (:require [clojure.java.io :as io]
             [clojure.string :as s]
-            [clojure.set :refer [intersection difference]]
+            [clojure.set :refer [intersection]]
             [clojure.test :refer [deftest is are]]
             [clojure.core.async :as a :refer [>! <! <!!]]
             [clojure.math.combinatorics :as combo]

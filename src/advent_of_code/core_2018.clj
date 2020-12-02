@@ -1,7 +1,7 @@
 (ns advent-of-code.core-2018
   (:require [clojure.java.io :as io]
             [clojure.string :as s]
-            [clojure.test :refer [deftest is run-tests]]))
+            [clojure.test :refer [deftest is]]))
 
 ; --- Day 1: Chronal Calibration ---
 
@@ -12,7 +12,7 @@
   ([f ls]
    (cons
     f
-    (if-let [delta (first ls)]
+    (when-let [delta (first ls)]
       (lazy-seq (resulting-frequency (+ f delta) (rest ls)))))))
 
 (defn first-twice [ls]
