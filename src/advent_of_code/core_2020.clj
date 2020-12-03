@@ -60,3 +60,45 @@
   (is (= 519 (valid-passwords-1 day-02-input)))
   (is (= 1 (valid-passwords-2 "1-3 a: abcde\n1-3 b: cdefg\n2-9 c: ccccccccc")))
   (is (= 708 (valid-passwords-2 day-02-input))))
+
+; --- Day 3: Toboggan Trajectory ---
+
+(defn counting-trees [grid [right down]]
+  (->> grid
+       (keep-indexed
+        (fn [index row]
+          (when (zero? (mod index down)) row)))
+       (map-indexed
+        (fn [index row]
+          (get row (mod (* index right) (count row)))))
+       (filter #{\#})
+       (count)))
+
+(defn counting-trees-n [grid]
+  (reduce
+   (fn [n slope]
+     (* n (counting-trees grid slope)))
+   1
+   [[1 1] [3 1] [5 1] [7 1] [1 2]]))
+
+(def tree-grid
+  ["..##......."
+   "#...#...#.."
+   ".#....#..#."
+   "..#.#...#.#"
+   ".#...##..#."
+   "..#.##....."
+   ".#.#.#....#"
+   ".#........#"
+   "#.##...#..."
+   "#...##....#"
+   ".#..#...#.#"])
+
+(def day-03-input
+  (-> "2020-day-03-input.txt" io/resource slurp str/split-lines))
+
+(deftest counting-all-the-trees-test
+  (is (= 7 (counting-trees tree-grid [3 1])))
+  (is (= 189 (counting-trees day-03-input [3 1])))
+  (is (= 336 (counting-trees-n tree-grid)))
+  (is (= 1718180100 (counting-trees-n day-03-input))))
