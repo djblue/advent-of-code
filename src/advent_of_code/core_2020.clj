@@ -102,3 +102,60 @@
   (is (= 189 (counting-trees day-03-input [3 1])))
   (is (= 336 (counting-trees-n tree-grid)))
   (is (= 1718180100 (counting-trees-n day-03-input))))
+
+; --- Day 4: Passport Processing ---
+
+(defn has-fields? [passport]
+  (= (count (dissoc passport :cid)) 7))
+
+(defn between? [number-string a b]
+  (<= a (Integer/parseInt number-string) b))
+
+(defn valid-height? [height]
+  (when-let [[_ h unit] (re-matches #"(\d+)(cm|in)" height)]
+    (let [h (Integer/parseInt h)]
+      (if (= unit "cm")
+        (<= 150 h 193)
+        (<= 59 h 76)))))
+
+(defn valid-passport? [{:keys [byr iyr eyr hgt hcl ecl pid] :as p}]
+  (and (has-fields? p)
+       (between? byr 1920 2002)
+       (between? iyr 2010 2020)
+       (between? eyr 2020 2030)
+       (valid-height? hgt)
+       (re-matches #"#[0-9a-fA-F]{6}" hcl)
+       (#{"amb" "blu" "brn" "gry" "grn" "hzl" "oth"} ecl)
+       (re-matches #"\d{9}" pid)))
+
+(defn parse-passports [string]
+  (for [passport (str/split string #"\n\n")]
+    (->> passport
+         (re-seq #"([^: \n]+):([^: \n]+)")
+         (map #(let [[_ k v] %] [(keyword k) v]))
+         (into {}))))
+
+(def passports
+  (str/join
+   "\n"
+   ["ecl:gry pid:860033327 eyr:2020 hcl:#fffffd"
+    "byr:1937 iyr:2017 cid:147 hgt:183cm"
+    ""
+    "iyr:2013 ecl:amb cid:350 eyr:2023 pid:028048884"
+    "hcl:#cfa07d byr:1929"
+    ""
+    "hcl:#ae17e1 iyr:2013"
+    "eyr:2024"
+    "ecl:brn pid:760753108 byr:1931"
+    "hgt:179cm"
+    ""
+    "hcl:#cfa07d eyr:2025 pid:166559648"
+    "iyr:2011 ecl:brn hgt:59in"]))
+
+(def day-04-input
+  (-> "2020-day-04-input.txt" io/resource slurp))
+
+(deftest valid-passports
+  (is (= 2   (->> passports    parse-passports (filter has-fields?)     count)))
+  (is (= 260 (->> day-04-input parse-passports (filter has-fields?)     count)))
+  (is (= 153 (->> day-04-input parse-passports (filter valid-passport?) count))))
