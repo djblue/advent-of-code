@@ -162,22 +162,9 @@
 
 ; --- Day 5: Binary Boarding ---
 
-(defn binary-partitioning [lower upper input]
-  (let [upper-bound (bit-shift-left 1 (count input))]
-    (last
-     (reduce
-      (fn [[a b] op]
-        (let [diff (/ (- b a) 2)]
-          (cond
-            (= op lower) [a (- b diff) a]
-            (= op upper) [(+ a diff) b (dec b)])))
-      [0 upper-bound]
-      input))))
-
 (defn boarding-pass-id [input]
-  (let [row    (binary-partitioning \F \B (take 7 input))
-        column (binary-partitioning \L \R (drop 7 input))]
-    (+ (* row 8) column)))
+  (Integer/parseInt
+   (str/replace input #"." {"F" "0" "B" "1" "L" "0" "R" "1"}) 2))
 
 (def day-05-input
   (-> "2020-day-05-input.txt" io/resource slurp))
