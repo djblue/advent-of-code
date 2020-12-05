@@ -159,3 +159,48 @@
   (is (= 2   (->> passports    parse-passports (filter has-fields?)     count)))
   (is (= 260 (->> day-04-input parse-passports (filter has-fields?)     count)))
   (is (= 153 (->> day-04-input parse-passports (filter valid-passport?) count))))
+
+; --- Day 5: Binary Boarding ---
+
+(defn binary-partitioning [lower upper input]
+  (let [upper-bound (bit-shift-left 1 (count input))]
+    (last
+     (reduce
+      (fn [[a b] op]
+        (let [diff (/ (- b a) 2)]
+          (cond
+            (= op lower) [a (- b diff) a]
+            (= op upper) [(+ a diff) b (dec b)])))
+      [0 upper-bound]
+      input))))
+
+(defn boarding-pass-id [input]
+  (let [row    (binary-partitioning \F \B (take 7 input))
+        column (binary-partitioning \L \R (drop 7 input))]
+    (+ (* row 8) column)))
+
+(def day-05-input
+  (-> "2020-day-05-input.txt" io/resource slurp))
+
+(def all-boarding-pass-ids
+  (->> day-05-input str/split-lines (map boarding-pass-id) (into #{})))
+
+(defn get-missing-pass []
+  (first
+   (for [a "FB" b "FB" c "FB" d "FB"
+         e "FB" f "FB" g "FB"
+         h "LR" i "LR" j "LR"
+         :let [input (str a b c d e f g h i j)
+               id    (boarding-pass-id input)]
+         :when (and (not (contains? all-boarding-pass-ids id))
+                    (contains? all-boarding-pass-ids (dec id))
+                    (contains? all-boarding-pass-ids (inc id)))]
+     id)))
+
+(deftest boarding-pass-id-tests
+  (is (= 357 (boarding-pass-id "FBFBBFFRLR")))
+  (is (= 567 (boarding-pass-id "BFFFBBFRRR")))
+  (is (= 119 (boarding-pass-id "FFFBBBFRRR")))
+  (is (= 820 (boarding-pass-id "BBFFBBFRLL")))
+  (is (= 835 (apply max all-boarding-pass-ids)))
+  (is (= 649 (get-missing-pass))))
