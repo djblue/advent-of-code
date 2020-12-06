@@ -1,9 +1,8 @@
 (ns advent-of-code.core-2020
   (:require [clojure.java.io :as io]
+            [clojure.set :as set]
             [clojure.string :as str]
             [clojure.test :refer [deftest is]]))
-
-; https://adventofcode.com/2020/day/1
 
 ; --- Day 1: Report Repair ---
 
@@ -191,3 +190,22 @@
   (is (= 820 (boarding-pass-id "BBFFBBFRLL")))
   (is (= 835 (apply max all-boarding-pass-ids)))
   (is (= 649 (get-missing-pass))))
+
+; --- Day 6: Custom Customs ---
+
+(def day-06-input
+  (-> "2020-day-06-input.txt" io/resource slurp))
+
+(defn parse-groups [input]
+  (map str/split-lines (str/split input #"\n\n")))
+
+(defn count-groups [f input]
+  (reduce
+   (fn [n group]
+     (+ n (->> group (map set) (reduce f) count)))
+   0
+   (parse-groups input)))
+
+(deftest custom-customs-tests
+  (is (= 6534 (count-groups set/union        day-06-input)))
+  (is (= 3402 (count-groups set/intersection day-06-input))))
