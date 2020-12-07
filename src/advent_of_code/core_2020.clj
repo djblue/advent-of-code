@@ -209,3 +209,57 @@
 (deftest custom-customs-tests
   (is (= 6534 (count-groups set/union        day-06-input)))
   (is (= 3402 (count-groups set/intersection day-06-input))))
+
+; --- Day 7: Handy Haversacks ---
+
+(defn parse-rules [rules-string]
+  (into
+   {}
+   (for [item (str/split-lines rules-string)
+         :let [[_ variant color contains]
+               (re-matches #"([^ ]+) ([^ ]+) bags contain (.*)" item)
+               contains (for [item (str/split contains #", ")
+                              :let [[_ n variant color]
+                                    (re-matches #"([^ ]+) ([^ ]+) ([^ ]+).*" item)]
+                              :when (not= n "no")]
+                          [(keyword variant color) (Integer/parseInt n)])]]
+     [(keyword variant color) contains])))
+
+(defn bags-with [rules bag]
+  (count
+   (filter
+    (fn reachable? [targets]
+      (some
+       (fn [[target]]
+         (or (= target bag)
+             (reachable? (get rules target))))
+       targets))
+    (vals (dissoc rules bag)))))
+
+(defn total-bags [rules bag]
+  (reduce
+   (fn [acc [target n]]
+     (+ acc n (* n (total-bags rules target))))
+   0
+   (get rules bag)))
+
+(def bag-rules
+  (str
+   "light red bags contain 1 bright white bag, 2 muted yellow bags.\n"
+   "dark orange bags contain 3 bright white bags, 4 muted yellow bags.\n"
+   "bright white bags contain 1 shiny gold bag.\n"
+   "muted yellow bags contain 2 shiny gold bags, 9 faded blue bags.\n"
+   "shiny gold bags contain 1 dark olive bag, 2 vibrant plum bags.\n"
+   "dark olive bags contain 3 faded blue bags, 4 dotted black bags.\n"
+   "vibrant plum bags contain 5 faded blue bags, 6 dotted black bags.\n"
+   "faded blue bags contain no other bags.\n"
+   "dotted black bags contain no other bags.\n"))
+
+(def day-07-input
+  (-> "2020-day-07-input.txt" io/resource slurp))
+
+(deftest handy-haversacks-tests
+  (is (= 4      (bags-with  (parse-rules bag-rules)     :shiny/gold)))
+  (is (= 278    (bags-with  (parse-rules day-07-input)  :shiny/gold)))
+  (is (= 32     (total-bags (parse-rules bag-rules)     :shiny/gold)))
+  (is (= 45157  (total-bags (parse-rules day-07-input)  :shiny/gold))))
