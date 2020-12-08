@@ -263,3 +263,54 @@
   (is (= 278    (bags-with  (parse-rules day-07-input)  :shiny/gold)))
   (is (= 32     (total-bags (parse-rules bag-rules)     :shiny/gold)))
   (is (= 45157  (total-bags (parse-rules day-07-input)  :shiny/gold))))
+
+; --- Day 8: Handheld Halting ---
+
+(defn run-program [instructions]
+  (loop [pc 0 a 0 ran? #{}]
+    (let [p (get instructions pc) [inst op] p]
+      (cond
+        (= (count instructions) pc) [::term a]
+        (ran? pc)                   [::loop a]
+        :else
+        (case inst
+          :acc (recur (inc pc)  (+ a op) (conj ran? pc))
+          :jmp (recur (+ pc op) a        (conj ran? pc))
+          :nop (recur (inc pc)  a        (conj ran? pc)))))))
+
+(defn parse-program [program-string]
+  (vec
+   (for [line (str/split-lines program-string)
+         :let [[_ inst op] (re-matches #"([^ ]+) (.\d+)" line)]]
+     [(keyword inst) (Integer/parseInt op)])))
+
+(defn fix-program [program]
+  (first
+   (for [i (range (count program))
+         :let [program (update-in
+                        program [i 0]
+                        #(if (= % :nop) :jmp :nop))
+               [condition result] (run-program program)]
+         :when (= condition ::term)]
+     [condition result])))
+
+(def day-08-input
+  (-> "2020-day-08-input.txt" io/resource slurp))
+
+(def sample-program
+  (str
+   "nop +0\n"
+   "acc +1\n"
+   "jmp +4\n"
+   "acc +3\n"
+   "jmp -3\n"
+   "acc -99\n"
+   "acc +1\n"
+   "jmp -4\n"
+   "acc +6\n"))
+
+(deftest handheld-halting-tests
+  (is (= [::loop 5]    (run-program (parse-program sample-program))))
+  (is (= [::loop 1614] (run-program (parse-program day-08-input))))
+  (is (= [::term 8]    (fix-program (parse-program sample-program))))
+  (is (= [::term 1260] (fix-program (parse-program day-08-input)))))
