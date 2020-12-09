@@ -314,3 +314,34 @@
   (is (= [::loop 1614] (run-program (parse-program day-08-input))))
   (is (= [::term 8]    (fix-program (parse-program sample-program))))
   (is (= [::term 1260] (fix-program (parse-program day-08-input)))))
+
+; --- Day 9: Encoding Error ---
+
+(def day-09-input
+  (-> "2020-day-09-input.txt" io/resource slurp))
+
+(defn find-invalid-number [input]
+  (first
+   (for [numbers (partition 26 1 input)
+         :let [n       (last numbers)
+               numbers (take 25 numbers)]
+         :when (empty?
+                (for [a numbers
+                      b numbers
+                      :when (= (+ a b) n)] true))]
+     n)))
+
+(defn encryption-weakness [input invalid-number]
+  (first
+   (for [n       (range 2 (count input))
+         numbers (partition n 1 input)
+         :when (= invalid-number (reduce + numbers))]
+     (+ (apply min numbers)
+        (apply max numbers)))))
+
+(deftest encoding-error-tests
+  (let [input (read-string (str "[" day-09-input "]"))]
+    (is (= 75678618
+           (encryption-weakness
+            input
+            (find-invalid-number input))))))
