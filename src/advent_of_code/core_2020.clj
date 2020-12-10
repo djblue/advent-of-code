@@ -1,10 +1,12 @@
 (ns advent-of-code.core-2020
   (:require [clojure.java.io :as io]
+            [clojure.math.combinatorics :as combo]
             [clojure.set :as set]
             [clojure.string :as str]
             [clojure.test :refer [deftest is]]))
 
 ; --- Day 1: Report Repair ---
+
 
 (defn expense-report-2 [numbers]
   (first
@@ -345,3 +347,27 @@
            (encryption-weakness
             input
             (find-invalid-number input))))))
+
+; --- Day 10: Adapter Array ---
+
+(def day-10-input
+  (sort (read-string (str "[" (-> "2020-day-10-input.txt" io/resource slurp) "]"))))
+
+(defn number-of-jolts [input]
+  (->> (partition 2 1 input)
+       (group-by (fn [[b a]] (- a b)))
+       vals
+       (map (comp inc count))
+       (reduce *)))
+
+(defn distinct-adapters [input]
+  (->> (partition 2 1 (into [0] input))
+       (map (fn [[b a]] (- a b)))
+       (partition-by #{3})
+       (remove (comp #{3} first))
+       (map (comp [1 1 2 4 7] count))
+       (reduce *)))
+
+(deftest adapter-array-tests
+  (is (= (number-of-jolts   day-10-input) 2812))
+  (is (= (distinct-adapters day-10-input) 386869246296064)))
