@@ -371,3 +371,102 @@
 (deftest adapter-array-tests
   (is (= (number-of-jolts   day-10-input) 2812))
   (is (= (distinct-adapters day-10-input) 386869246296064)))
+
+; --- Day 11: Adapter Array ---
+
+(defn parse-seats [string]
+  (let [lines  (str/split-lines string)
+        height (count lines)
+        width  (count (first lines))]
+    (into
+     {}
+     (for [row    (range height)
+           column (range width)]
+       [{:row row :column column}
+        (case (get-in lines [row column])
+          \L :empty
+          \. :floor)]))))
+
+(defn occupied-1 [plane {:keys [row column]}]
+  (reduce
+   (fn [n position]
+     (if (= :occupied (get plane position)) (inc n) n))
+   0
+   [{:row (inc row) :column column}
+    {:row (dec row) :column column}
+    {:row row :column (inc column)}
+    {:row row :column (dec column)}
+    {:row (inc row) :column (inc column)}
+    {:row (dec row) :column (dec column)}
+    {:row (inc row) :column (dec column)}
+    {:row (dec row) :column (inc column)}]))
+
+(defn adjacent-search [plane {:keys [row column]} update-row update-column]
+  (let [position {:row    (update-row row)
+                  :column (update-column column)}
+        value    (get plane position)]
+    (cond
+      (= value :occupied) 1
+      (= value :floor)
+      (recur plane position update-row update-column)
+      :else 0)))
+
+(defn occupied-2 [plane position]
+  (+
+   (adjacent-search plane position inc identity)
+   (adjacent-search plane position dec identity)
+   (adjacent-search plane position identity inc)
+   (adjacent-search plane position identity dec)
+   (adjacent-search plane position inc inc)
+   (adjacent-search plane position dec dec)
+   (adjacent-search plane position inc dec)
+   (adjacent-search plane position dec inc)))
+
+(defn next-plane [f n plane]
+  (persistent!
+   (reduce-kv
+    (fn [next-plane position state]
+      (let [occupied (f plane position)]
+        (cond
+          (and (= state :empty) (zero? occupied))
+          (assoc! next-plane position :occupied)
+
+          (and (= state :occupied) (>= occupied n))
+          (assoc! next-plane position :empty)
+
+          :else next-plane)))
+    (transient plane)
+    plane)))
+
+(defn stable-steats [f n plane]
+  (->> (iterate
+        (partial next-plane f n) plane)
+       (take 200)
+       (partition 2 1)
+       (filter (fn [[a b]] (= a b)))
+       ffirst
+       vals
+       frequencies
+       :occupied))
+
+(def day-11-input
+  (-> "2020-day-11-input.txt" io/resource slurp))
+
+(def example-seats
+  (str
+   "L.LL.LL.LL\n"
+   "LLLLLLL.LL\n"
+   "L.L.L..L..\n"
+   "LLLL.LL.LL\n"
+   "L.LL.LL.LL\n"
+   "L.LLLLL.LL\n"
+   "..L.L.....\n"
+   "LLLLLLLLLL\n"
+   "L.LLLLLL.L\n"
+   "L.LLLLL.LL\n"))
+
+(deftest seating-system-tests
+  (is (= 37   (stable-steats occupied-1 4 (parse-seats example-seats))))
+  (is (= 2418 (stable-steats occupied-1 4 (parse-seats day-11-input))))
+  (is (= 26   (stable-steats occupied-2 5 (parse-seats example-seats))))
+  (is (= 2144 (stable-steats occupied-2 5 (parse-seats day-11-input)))))
