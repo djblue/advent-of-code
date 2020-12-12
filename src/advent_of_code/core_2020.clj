@@ -1,12 +1,10 @@
 (ns advent-of-code.core-2020
   (:require [clojure.java.io :as io]
-            [clojure.math.combinatorics :as combo]
             [clojure.set :as set]
             [clojure.string :as str]
             [clojure.test :refer [deftest is]]))
 
 ; --- Day 1: Report Repair ---
-
 
 (defn expense-report-2 [numbers]
   (first
@@ -470,3 +468,92 @@
   (is (= 2418 (stable-steats occupied-1 4 (parse-seats day-11-input))))
   (is (= 26   (stable-steats occupied-2 5 (parse-seats example-seats))))
   (is (= 2144 (stable-steats occupied-2 5 (parse-seats day-11-input)))))
+
+; --- Day 12: Rain Risk ---
+
+(def day-12-input
+  (-> "2020-day-12-input.txt" io/resource slurp))
+
+(def inst->keyword
+  {"N" :north
+   "S" :south
+   "E" :east
+   "W" :west
+   "L" :left
+   "R" :right
+   "F" :forward})
+
+(defn parse-actions [string]
+  (for [line (str/split-lines string)
+        :let [inst (subs line 0 1)
+              n    (subs line 1)]]
+    [(inst->keyword inst) (Integer/parseInt n)]))
+
+(defn add [a b] (mapv + a b))
+(defn sub [a b] (mapv - a b))
+(defn mul [a n] (mapv #(* n %) a))
+
+(defn rotate [[x y] degrees]
+  (case (mod degrees 360)
+    0   [x y]
+    90  [y (- x)]
+    180 [(- x) (- y)]
+    270 [(- y) x]))
+
+(defn move [position [inst n]]
+  (case inst
+    :north (add position [(+ n) 0])
+    :south (add position [(- n) 0])
+    :east  (add position [0 (+ n)])
+    :west  (add position [0 (- n)])))
+
+(def direction->inst
+  {0 :east 90 :north 180 :west 270 :south})
+
+(defn apply-ship-instructions [instructions]
+  (:position
+   (reduce
+    (fn [state [inst n]]
+      (case inst
+        (:north :south :east  :west)
+        (update state :position move [inst n])
+
+        :left   (update state :direction #(mod (+ % n) 360))
+        :right  (update state :direction #(mod (- % n) 360))
+
+        :forward
+        (update state :position move [(direction->inst (:direction state)) n])))
+    {:direction 0
+     :position [0 0]}
+    instructions)))
+
+(defn apply-waypoint-instructions [instructions]
+  (:position
+   (reduce
+    (fn [state [inst n]]
+      (case inst
+        (:north :south :east  :west)
+        (update state :waypoint move [inst n])
+
+        :left   (update state :waypoint rotate n)
+        :right  (update state :waypoint rotate (- n))
+
+        :forward
+        (update state :position add (mul (:waypoint state) n))))
+    {:direction 0
+     :waypoint [1 10]
+     :position [0 0]}
+    instructions)))
+
+(defn manhattan-distance [a]
+  (reduce #(+ %1 (Math/abs %2)) 0 a))
+
+(deftest rain-risk-tests
+  (is
+   (=
+    286
+    (manhattan-distance
+     (apply-waypoint-instructions
+      [[:forward 10] [:north 3] [:forward 7] [:right 90] [:forward 11]]))))
+  (is (= 1133  (-> day-12-input parse-actions apply-ship-instructions     manhattan-distance)))
+  (is (= 61053 (-> day-12-input parse-actions apply-waypoint-instructions manhattan-distance))))
