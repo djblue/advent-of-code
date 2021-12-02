@@ -1,0 +1,57 @@
+#+TITLE: Advent of Code
+#+YEAR: 2021
+
+* Utils
+
+#+begin_src elisp
+(defun utils/slurp (file)
+  "File to string function"
+  (with-temp-buffer
+    (insert-file-contents
+     (concat (projectile-project-root) file))
+    (buffer-string)))
+#+end_src
+
+#+RESULTS:
+: utils/slurp
+
+* Day 1: Sonar Sweep
+** Input
+
+#+begin_src emacs-lisp
+(defun get-input ()
+  (mapcar
+   'string-to-number
+   (split-string
+    (utils/slurp "resources/2021-day-01-input.txt")
+    "\n")))
+#+end_src
+
+#+RESULTS:
+: get-input
+
+** Part 1
+
+#+begin_src emacs-lisp
+(defun count-increases (ls)
+  (seq-count (lambda (n) (when (> n 0) t))
+   (seq-mapn (lambda (a b) (- b a)) ls (seq-drop ls 1))))
+
+(count-increases (get-input))
+#+end_src
+
+#+RESULTS:
+: 1316
+
+** Part 2
+
+#+begin_src emacs-lisp
+(defun sliding-window (ls)
+  (seq-mapn #'+ ls (seq-drop ls 1) (seq-drop ls 2)))
+
+(count-increases
+ (sliding-window (get-input)))
+#+end_src
+
+#+RESULTS:
+: 1344
