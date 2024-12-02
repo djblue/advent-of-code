@@ -1,0 +1,18 @@
+{
+    "calva.replConnectSequences": [
+        {
+            "name": "advent-of-code",
+            "projectType": "deps.edn",
+            "projectRootPath": [
+                "."
+            ],
+            "extraNReplMiddleware": [
+                "portal.nrepl/middleware"
+            ],
+            "autoSelectForJackIn": true,
+            "menuSelections": {
+                "cljAliases": []
+            }
+        }
+    ]
+}

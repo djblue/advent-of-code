@@ -2,6 +2,7 @@
  :deps
  {org.clojure/core.async {:mvn/version "0.6.532"}
   org.clojure/math.combinatorics {:mvn/version "0.1.6"}
-  criterium/criterium {:mvn/version "0.4.5"}}
+  criterium/criterium {:mvn/version "0.4.5"}
+  djblue/portal {:mvn/version "0.58.3"}}
  :aliases
  {:test {:main-opts ["-m" "advent-of-code.core"]}}}
