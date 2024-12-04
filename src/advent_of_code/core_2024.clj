@@ -129,3 +129,152 @@
   (is (= 196826776 (day-3-solution-1 (slurp (io/resource "2024/03-input.txt")))))
   (is (= 48 (day-3-solution-2 input-03-02)))
   (is (= 106780429 (day-3-solution-2 (slurp (io/resource "2024/03-input.txt"))))))
+
+;; --- Day 4: Ceres Search ---
+
+(def input-04
+  "MMMSXXMASM
+MSAMXMSMSA
+AMXSXMAAMM
+MSAMASMSMX
+XMASAMXAMM
+XXAMMXXAMA
+SMSMSASXSS
+SAXAMASAAA
+MAMMMXMMMM
+MXMXAXMASX")
+
+(defn day-4-solution-1-attempt-1 [input]
+  (let [lines      (str/split-lines input)
+        columns    (for [n (range (count lines))]
+                     (str/join
+                      (for [line lines] (nth line n))))
+        diag-top-left
+        (concat
+         (for [n (butlast (range (count lines)))]
+           (str/join
+            (map-indexed
+             (fn [index line]
+               (nth line (- n index) ""))
+             (reverse lines))))
+         (for [n (range (count lines))]
+           (str/join
+            (map-indexed
+             (fn [index line]
+               (nth line (+ n index) ""))
+             lines))))
+        diag-top-right
+        (concat
+         (for [n (butlast (reverse (range (count lines))))]
+           (str/join
+            (map-indexed
+             (fn [index line]
+               (nth line (+ n index) ""))
+             (reverse lines))))
+         (for [n (reverse (range (count lines)))]
+           (str/join
+            (map-indexed
+             (fn [index line]
+               (nth line (- n index) ""))
+             lines))))]
+    (count
+     (for [line  (concat lines columns diag-top-left diag-top-right)
+           found (concat (re-seq #"XMAS" line)
+                         (re-seq #"SAMX" line))]
+       found))))
+
+(defn x-mas [grid i j]
+  (cond-> 0
+   ;; row
+    (or (and
+         (= \X (get-in grid [(+ i 0) (+ j 0)]))
+         (= \M (get-in grid [(+ i 0) (+ j 1)]))
+         (= \A (get-in grid [(+ i 0) (+ j 2)]))
+         (= \S (get-in grid [(+ i 0) (+ j 3)])))
+        (and
+         (= \S (get-in grid [(+ i 0) (+ j 0)]))
+         (= \A (get-in grid [(+ i 0) (+ j 1)]))
+         (= \M (get-in grid [(+ i 0) (+ j 2)]))
+         (= \X (get-in grid [(+ i 0) (+ j 3)]))))
+    inc
+
+    ;; column
+    (or (and
+         (= \X (get-in grid [(+ i 0) (+ j 0)]))
+         (= \M (get-in grid [(+ i 1) (+ j 0)]))
+         (= \A (get-in grid [(+ i 2) (+ j 0)]))
+         (= \S (get-in grid [(+ i 3) (+ j 0)])))
+        (and
+         (= \S (get-in grid [(+ i 0) (+ j 0)]))
+         (= \A (get-in grid [(+ i 1) (+ j 0)]))
+         (= \M (get-in grid [(+ i 2) (+ j 0)]))
+         (= \X (get-in grid [(+ i 3) (+ j 0)]))))
+    inc
+
+    ;; diag 1
+    (or (and
+         (= \X (get-in grid [(+ i 0) (+ j 0)]))
+         (= \M (get-in grid [(+ i 1) (+ j 1)]))
+         (= \A (get-in grid [(+ i 2) (+ j 2)]))
+         (= \S (get-in grid [(+ i 3) (+ j 3)])))
+        (and
+         (= \S (get-in grid [(+ i 0) (+ j 0)]))
+         (= \A (get-in grid [(+ i 1) (+ j 1)]))
+         (= \M (get-in grid [(+ i 2) (+ j 2)]))
+         (= \X (get-in grid [(+ i 3) (+ j 3)]))))
+    inc
+
+    ;; diag 2
+    (or (and
+         (= \X (get-in grid [(- i 0) (+ j 0)]))
+         (= \M (get-in grid [(- i 1) (+ j 1)]))
+         (= \A (get-in grid [(- i 2) (+ j 2)]))
+         (= \S (get-in grid [(- i 3) (+ j 3)])))
+        (and
+         (= \S (get-in grid [(- i 0) (+ j 0)]))
+         (= \A (get-in grid [(- i 1) (+ j 1)]))
+         (= \M (get-in grid [(- i 2) (+ j 2)]))
+         (= \X (get-in grid [(- i 3) (+ j 3)]))))
+    inc))
+
+(defn day-4-solution-1 [input]
+  (let [grid (mapv vec (str/split-lines input))]
+    (reduce
+     +
+     (for [i (range (count grid))
+           j (range (count grid))]
+       (x-mas grid i j)))))
+
+(defn xmas? [grid i j]
+  (and
+   (= \A (get-in grid [i j]))
+   (or
+    (and
+     (= \M (get-in grid [(dec i) (dec j)]))
+     (= \S (get-in grid [(inc i) (inc j)])))
+    (and
+     (= \S (get-in grid [(dec i) (dec j)]))
+     (= \M (get-in grid [(inc i) (inc j)]))))
+   (or
+    (and
+     (= \M (get-in grid [(dec i) (inc j)]))
+     (= \S (get-in grid [(inc i) (dec j)])))
+    (and
+     (= \S (get-in grid [(dec i) (inc j)]))
+     (= \M (get-in grid [(inc i) (dec j)]))))))
+
+(defn day-4-solution-2 [input]
+  (let [grid (mapv vec (str/split-lines input))]
+    (count
+     (for [i (range (count grid))
+           j (range (count grid))
+           :when (xmas? grid i j)]
+       [i j]))))
+
+(deftest day-4
+  (is (= 18 (day-4-solution-1-attempt-1 input-04)))
+  (is (= 2642 (time (day-4-solution-1-attempt-1 (slurp (io/resource "2024/04-input.txt"))))))
+  (is (= 18 (day-4-solution-1 input-04)))
+  (is (= 2642 (time (day-4-solution-1 (slurp (io/resource "2024/04-input.txt"))))))
+  (is (= 9 (day-4-solution-2 input-04)))
+  (is (= 1974 (day-4-solution-2 (slurp (io/resource "2024/04-input.txt"))))))
