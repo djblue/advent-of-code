@@ -98,3 +98,34 @@
   (is (= 631 (day-2-solution-1 (slurp (io/resource "2024/02-input.txt")))))
   (is (= 4 (day-2-solution-2 input-02)))
   (is (= 665 (day-2-solution-2 (slurp (io/resource "2024/02-input.txt"))))))
+
+;; --- Day 3: Mull It Over ---
+
+(def input-03 "xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))")
+
+(defn day-3-solution-1 [input]
+  (reduce
+   +
+   (for [[_ a b] (re-seq #"mul\((\d+),(\d+)\)" input)]
+     (* (parse-long a) (parse-long b)))))
+
+(def input-03-02 "xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))")
+
+(defn day-3-solution-2 [input]
+  (:acc
+   (reduce
+    (fn [{:keys [state] :as out} [op a b]]
+      (case op
+        "don't()" (assoc out :state :dont)
+        "do()" (assoc out :state :do)
+        (if (= :dont state)
+          out
+          (update out :acc + (* (parse-long a) (parse-long b))))))
+    {:acc 0 :state :do}
+    (re-seq #"mul\((\d+),(\d+)\)|do\(\)|don't\(\)" input))))
+
+(deftest day-3
+  (is (= 161 (day-3-solution-1 input-03)))
+  (is (= 196826776 (day-3-solution-1 (slurp (io/resource "2024/03-input.txt")))))
+  (is (= 48 (day-3-solution-2 input-03-02)))
+  (is (= 106780429 (day-3-solution-2 (slurp (io/resource "2024/03-input.txt"))))))
