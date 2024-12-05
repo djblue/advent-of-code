@@ -278,3 +278,85 @@ MXMXAXMASX")
   (is (= 2642 (time (day-4-solution-1 (slurp (io/resource "2024/04-input.txt"))))))
   (is (= 9 (day-4-solution-2 input-04)))
   (is (= 1974 (day-4-solution-2 (slurp (io/resource "2024/04-input.txt"))))))
+
+;; --- Day 5: Print Queue ---
+
+(def input-05
+  "47|53
+97|13
+97|61
+97|47
+75|29
+61|13
+75|53
+29|13
+97|29
+53|29
+61|53
+97|53
+61|29
+47|13
+75|47
+97|75
+47|61
+75|61
+47|29
+75|13
+53|13
+
+75,47,61,53,29
+97,61,53,29,13
+75,29,13
+75,97,47,61,53
+61,13,29
+97,13,75,29,47")
+
+(defn parse-input-day-5 [input]
+  (let [[a b] (str/split input #"\n\n")]
+    {:page-ordering-rules
+     (reduce
+      (fn [out line]
+        (let [[_ a b] (re-matches #"(\d+)\|(\d+)" line)
+              a (parse-long a) b (parse-long b)]
+          (update out a (fnil conj #{}) b)))
+      {}
+      (str/split-lines a))
+     :pages-to-produce
+     (for [line (str/split-lines b)]
+       (map parse-long (str/split line #",")))}))
+
+(defn correctly-ordered [{:keys [page-ordering-rules]} page-order]
+  (sort
+   (fn [a b]
+     (cond
+       (get-in page-ordering-rules [a b]) -1
+       (get-in page-ordering-rules [b a]) 1
+       :else      0))
+   page-order))
+
+(defn day-5-solution-1 [input]
+  (let [{:keys [pages-to-produce] :as in} (parse-input-day-5 input)]
+    (reduce
+     +
+     (keep
+      (fn [page-order]
+        (when (= page-order (correctly-ordered in page-order))
+          (nth page-order (quot (count page-order) 2))))
+      pages-to-produce))))
+
+(defn day-5-solution-2 [input]
+  (let [{:keys [pages-to-produce] :as in} (parse-input-day-5 input)]
+    (reduce
+     +
+     (keep
+      (fn [page-order]
+        (let [page-order' (correctly-ordered in page-order)]
+          (when-not (= page-order' page-order)
+            (nth page-order' (quot (count page-order') 2)))))
+      pages-to-produce))))
+
+(deftest day-5
+  (is (= 143 (day-5-solution-1 input-05)))
+  (is (= 5948 (day-5-solution-1 (slurp (io/resource "2024/05-input.txt")))))
+  (is (= 123 (day-5-solution-2 input-05)))
+  (is (= 3062 (day-5-solution-2 (slurp (io/resource "2024/05-input.txt"))))))
