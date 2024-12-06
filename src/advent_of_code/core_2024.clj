@@ -360,3 +360,80 @@ MXMXAXMASX")
   (is (= 5948 (day-5-solution-1 (slurp (io/resource "2024/05-input.txt")))))
   (is (= 123 (day-5-solution-2 input-05)))
   (is (= 3062 (day-5-solution-2 (slurp (io/resource "2024/05-input.txt"))))))
+
+;; --- Day 6: Guard Gallivant ---
+
+(def input-06
+  "....#.....
+.........#
+..........
+..#.......
+.......#..
+..........
+.#..^.....
+........#.
+#.........
+......#...")
+
+(defn parse-input-day-6 [input]
+  (let [grid (mapv vec (str/split-lines input))
+        start-position (some
+                        (fn [row]
+                          (some
+                           (fn [column]
+                             (when (= \^ (get-in grid [row column]))
+                               {:direction :up
+                                :row row
+                                :column column}))
+                           (range (count (get grid row)))))
+                        (range (count grid)))]
+    {:grid grid
+     :guard start-position
+     :visited #{(select-keys start-position [:row :column])}
+     :states #{start-position}}))
+
+(defn patrol-protocol-step [{grid :grid states :states {:keys [direction row column]} :guard :as input}]
+  (let [next-position (case direction
+                        :up    {:row (dec row) :column column}
+                        :down  {:row (inc row) :column column}
+                        :left  {:row row :column (dec column)}
+                        :right {:row row :column (inc column)})
+        next-block (get-in grid ((juxt :row :column) next-position))
+        next-state (assoc next-position :direction direction)]
+    (if (contains? states next-state)
+      :loop
+      (case next-block
+        (\^ \.) (recur
+                 (-> input
+                     (update :visited conj next-position)
+                     (update :states conj next-state)
+                     (update :guard merge next-position)))
+        \# (recur
+            (update input :guard
+                    assoc :direction
+                    (case direction
+                      :up :right
+                      :right :down
+                      :down :left
+                      :left :up)))
+        nil input))))
+
+(defn patrol-protocol [input]
+  (count (:visited (patrol-protocol-step (parse-input-day-6 input)))))
+
+(defn patrol-protocol-looper [input]
+  (let [{:keys [grid] :as in} (parse-input-day-6 input)
+        {:keys [visited]} (patrol-protocol-step in)]
+    (count
+     (for [row    (range (count grid))
+           column (range (count (get grid row)))
+           :when  (contains? visited {:row row :column column})
+           :when  (not (#{\^ \#} (get-in grid [row column])))
+           :when  (= :loop (patrol-protocol-step (assoc in :grid (assoc-in grid [row column] \#))))]
+       {:row row :column column}))))
+
+(deftest day-6
+  (is (= 41 (patrol-protocol input-06)))
+  (is (= 5153 (patrol-protocol (slurp (io/resource "2024/06-input.txt")))))
+  (is (= 6 (patrol-protocol-looper input-06)))
+  (comment (is (= 1711 (patrol-protocol-looper (slurp (io/resource "2024/06-input.txt")))))))
