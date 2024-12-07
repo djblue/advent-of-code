@@ -1,6 +1,7 @@
 (ns advent-of-code.core-2024
   (:require
    [clojure.java.io :as io]
+   [clojure.math.combinatorics :as combo]
    [clojure.string :as str]
    [clojure.test :refer [deftest is]]))
 
@@ -437,3 +438,63 @@ MXMXAXMASX")
   (is (= 5153 (patrol-protocol (slurp (io/resource "2024/06-input.txt")))))
   (is (= 6 (patrol-protocol-looper input-06)))
   (comment (is (= 1711 (patrol-protocol-looper (slurp (io/resource "2024/06-input.txt")))))))
+
+;; --- Day 7: Bridge Repair ---
+
+(def input-07
+  "190: 10 19
+3267: 81 40 27
+83: 17 5
+156: 15 6
+7290: 6 8 6 15
+161011: 16 10 13
+192: 17 8 14
+21037: 9 7 18 13
+292: 11 6 16 20")
+
+(defn parse-input-day-7 [input]
+  (for [line (str/split-lines input)
+        :let [[total numbers] (str/split line #": ")]]
+    {:total   (parse-long total)
+     :numbers (long-array (mapv parse-long (str/split numbers #" ")))}))
+
+(defn scale ^long [n]
+  (loop [^long n (abs n) m 1]
+    (let [x (quot n 10)]
+      (if (> 1 x)
+        m
+        (recur x (* m 10))))))
+
+(defn || [^long a ^long b] (+ (* 10 a (scale b)) b))
+
+(defn day-7-solution [part input]
+  (let [ops (case part 1 [0 1] 2 [0 1 2])
+        selections (memoize (comp #(map object-array %) combo/selections))]
+    (->> (parse-input-day-7 input)
+         (keep
+          (fn [{:keys [^long total ^longs numbers]}]
+            (let [n (alength numbers)]
+              (some
+               (fn [^objects combo]
+                 (when (== total
+                           (loop [^long a (first numbers) i 0]
+                             (let [j (inc i)]
+                               (cond
+                                 (> a total) -1
+                                 (>= j n)    a
+                                 :else
+                                 (recur
+                                  (let [op (aget combo i) b (aget numbers j)]
+                                    (cond
+                                      (== op 0) (+ a b)
+                                      (== op 1) (* a b)
+                                      :else     (|| a b))) j)))))
+                   total))
+               (selections ops (dec (count numbers)))))))
+         (reduce +))))
+
+(deftest day-7
+  (is (= 3749 (day-7-solution 1 input-07)))
+  (is (= 538191549061 (day-7-solution 1 (slurp (io/resource "2024/07-input.txt")))))
+  (is (= 11387 (day-7-solution 2 input-07)))
+  (is (= 34612812972206 (day-7-solution 2 (slurp (io/resource "2024/07-input.txt"))))))
