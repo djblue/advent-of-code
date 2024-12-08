@@ -498,3 +498,85 @@ MXMXAXMASX")
   (is (= 538191549061 (day-7-solution 1 (slurp (io/resource "2024/07-input.txt")))))
   (is (= 11387 (day-7-solution 2 input-07)))
   (is (= 34612812972206 (day-7-solution 2 (slurp (io/resource "2024/07-input.txt"))))))
+
+;; --- Day 8: Resonant Collinearity ---
+
+(def input-08
+  "............
+........0...
+.....0......
+.......0....
+....0.......
+......A.....
+............
+............
+........A...
+.........A..
+............
+............")
+
+(defn parse-input-day-8 [input]
+  (let [grid (mapv vec (str/split-lines input))
+        rows (count grid)
+        columns (count (first grid))]
+    {:grid grid
+     :rows rows
+     :columns columns
+     :antennas
+     (for [row    (range rows)
+           column (range columns)
+           :let [value (get-in grid [row column])]
+           :when (not= \. value)]
+       {:row row
+        :column column
+        :value value})}))
+
+(defn day-8-solution-1 [input]
+  (let [{:keys [rows columns antennas]} (parse-input-day-8 input)]
+    (reduce
+     (fn [out {:keys [value row column]}]
+       (conj out {:row row :column column :value value}))
+     #{}
+     (for [[_node locations] (group-by :value antennas)
+           [a b] (combo/combinations locations 2)
+           [a b] [[a b] [b a]]
+           :let [row    (+ (:row b) (- (:row b) (:row a)))
+                 column (+ (:column b) (- (:column b) (:column a)))]
+           :when (and (< -1 row rows) (< -1 column columns))]
+       {:value \#
+        :row row
+        :column column}))))
+
+(defn gcd [a b]
+  (if (zero? b)
+    a
+    (recur b (mod a b))))
+
+(defn day-8-solution-2 [input]
+  (let [{:keys [rows columns antennas]} (parse-input-day-8 input)]
+    (reduce
+     (fn [out {:keys [value row column]}]
+       (conj out {:row row :column column :value value}))
+     #{}
+     (for [[_node locations] (group-by :value antennas)
+           [a b] (combo/combinations locations 2)
+           :let [row     (- (:row b) (:row a))
+                 column  (- (:column b) (:column a))
+                 scale   (gcd row column)
+                 row     (quot row scale)
+                 column  (quot column scale)
+                 n       (max rows columns)]
+           n (range (- n) n 1)
+           :let [row (+ (:row b) (* n row))
+                 column (+ (:column b) (* n column))]
+           :when (and (< -1 row rows)
+                      (< -1 column columns))]
+       {:value \#
+        :row row
+        :column column}))))
+
+(deftest  day-8
+  (is (= 14 (count (day-8-solution-1 input-08))))
+  (is (= 291 (count (day-8-solution-1 (slurp (io/resource "2024/08-input.txt"))))))
+  (is (= 34 (count (day-8-solution-2 input-08))))
+  (is (= 1015 (count (day-8-solution-2 (slurp (io/resource "2024/08-input.txt")))))))
